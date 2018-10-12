@@ -49,8 +49,11 @@ impl PartitionIDVariant {
 
 impl PartitionID {
     /// Find the ID of the device at the given path.
-    pub fn by_id<P: AsRef<Path>>(variant: PartitionIDVariant, path: P) -> Option<String> {
-        find_uuid(path.as_ref(), Self::dir(variant))
+    pub fn by_id<P: AsRef<Path>>(variant: PartitionIDVariant, path: P) -> Option<Self> {
+        Some(Self {
+            variant,
+            id: find_uuid(path.as_ref(), Self::dir(variant))?
+        })
     }
 
     /// Find the device path of this ID.

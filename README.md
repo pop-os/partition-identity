@@ -10,6 +10,7 @@ Find the ID of a device by its path, or find a device path by its ID.
 extern crate partition_identity;
 
 use partition_identity::{PartitionID, PartitionIDVariant};
+use self::PartitionIDVariant::*;
 use std::env;
 use std::process::exit;
 
@@ -23,23 +24,23 @@ fn main() {
                     if ! first { println!() }
                     first = false;
                     println!("{}:", device);
-                    println!("ID: {:?}", PartitionID::by_id(PartitionIDVariant::ID, &device));
-                    println!("Label: {:?}", PartitionID::by_id(PartitionIDVariant::Label, &device));
-                    println!("PartLabel: {:?}", PartitionID::by_id(PartitionIDVariant::PartLabel, &device));
-                    println!("PartUUID: {:?}", PartitionID::by_id(PartitionIDVariant::PartUUID, &device));
-                    println!("Path: {:?}", PartitionID::by_id(PartitionIDVariant::Path, &device));
-                    println!("UUID: {:?}", PartitionID::by_id(PartitionIDVariant::UUID, &device));
+                    println!("ID: {:?}", PartitionID::by_id(ID, &device).map(|id| id.id));
+                    println!("Label: {:?}", PartitionID::by_id(Label, &device).map(|id| id.id));
+                    println!("PartLabel: {:?}", PartitionID::by_id(PartLabel, &device).map(|id| id.id));
+                    println!("PartUUID: {:?}", PartitionID::by_id(PartUUID, &device).map(|id| id.id));
+                    println!("Path: {:?}", PartitionID::by_id(Path, &device).map(|id| id.id));
+                    println!("UUID: {:?}", PartitionID::by_id(UUID, &device).map(|id| id.id));
                 }
             }
             "by-uuid" => {
                 for id in args {
-                    let var = PartitionID { variant: PartitionIDVariant::UUID, id: id.clone() };
+                    let var = PartitionID::new(UUID, id.clone());
                     println!("{}: {:?}", id, var.from_id());
                 }
             }
             "by-partuuid" => {
                 for id in args {
-                    let var = PartitionID { variant: PartitionIDVariant::PartUUID, id: id.clone() };
+                    let var = PartitionID::new(PartUUID, id.clone());
                     println!("{}: {:?}", id, var.from_id());
                 }
             }
