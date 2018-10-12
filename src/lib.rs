@@ -3,12 +3,23 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Describes a partition identity.
+/// 
+/// A device path may be recovered from this.
+#[derive(Clone, Debug, Hash, PartialEq)]
 pub struct PartitionID {
     pub variant: PartitionIDVariant,
     pub id: String
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Hash)]
+impl PartitionID {
+    pub fn new(variant: PartitionIDVariant, id: String) -> Self {
+        Self { variant, id }
+    }
+}
+
+/// Describes the type of partition identity.
+#[derive(Copy, Clone, Debug, Hash, PartialEq)]
 pub enum PartitionIDVariant {
     ID,
     Label,
@@ -37,12 +48,12 @@ impl PartitionIDVariant {
 
 
 impl PartitionID {
-    /// Find the ID of the disk at the given path.
+    /// Find the ID of the device at the given path.
     pub fn by_id<P: AsRef<Path>>(variant: PartitionIDVariant, path: P) -> Option<String> {
         find_uuid(path.as_ref(), Self::dir(variant))
     }
 
-    /// Find the disk by the given ID variant.
+    /// Find the device path of this ID.
     pub fn from_id(&self) -> Option<PathBuf> {
         from_uuid(&self.id, Self::dir(self.variant))
     }
@@ -69,7 +80,7 @@ fn find_uuid(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
     None
 }
 
-pub fn from_uuid(uuid: &str, uuid_dir: fs::ReadDir) -> Option<PathBuf> {
+fn from_uuid(uuid: &str, uuid_dir: fs::ReadDir) -> Option<PathBuf> {
     for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
         let uuid_entry = uuid_entry.path();
         if let Some(name) = uuid_entry.file_name() {
