@@ -29,9 +29,9 @@ pub enum PartitionIDVariant {
     UUID
 }
 
-impl PartitionIDVariant {
-    pub fn to_str(self) -> &'static str {
-        match self {
+impl From<PartitionIDVariant> for &'static str {
+    fn from(pid: PartitionIDVariant) -> &'static str {
+        match pid {
             PartitionIDVariant::ID => "id",
             PartitionIDVariant::Label => "label",
             PartitionIDVariant::PartLabel => "partlabel",
@@ -40,9 +40,11 @@ impl PartitionIDVariant {
             PartitionIDVariant::UUID => "uuid"
         }
     }
+}
 
-    pub fn disk_by_path(&self) -> PathBuf {
-        PathBuf::from(["/dev/disk/by-", self.to_str()].concat())
+impl PartitionIDVariant {
+    pub fn disk_by_path(self) -> PathBuf {
+        PathBuf::from(["/dev/disk/by-", <&'static str>::from(self)].concat())
     }
 }
 
