@@ -8,19 +8,58 @@ use std::path::{Path, PathBuf};
 /// A device path may be recovered from this.
 #[derive(Clone, Debug, Hash, PartialEq)]
 pub struct PartitionID {
-    pub variant: PartitionIDVariant,
+    pub variant: PartitionSource,
     pub id: String
 }
 
 impl PartitionID {
-    pub fn new(variant: PartitionIDVariant, id: String) -> Self {
+    /// Construct a new `PartitionID` as the given source.
+    pub fn new(variant: PartitionSource, id: String) -> Self {
         Self { variant, id }
+    }
+
+    /// Construct a new `PartitionID` as a `UUID` source.
+    pub fn new_uuid(id: String) -> Self {
+        Self::new(PartitionSource::UUID, id)
+    }
+
+    /// Construct a new `PartitionID` as a `PartUUID` source.
+    pub fn new_partuuid(id: String) -> Self {
+        Self::new(PartitionSource::PartUUID, id)
+    }
+
+    /// Find the given source ID of the device at the given path.
+    pub fn get_source<P: AsRef<Path>>(variant: PartitionSource, path: P) -> Option<Self> {
+        Some(Self {
+            variant,
+            id: find_uuid(path.as_ref(), Self::dir(variant))?
+        })
+    }
+
+    /// Find the UUID of the device at the given path.
+    pub fn get_uuid<P: AsRef<Path>>(path: P) -> Option<Self> {
+        Self::get_source(PartitionSource::UUID, path)
+    }
+
+    /// Find the PARTUUID of the device at the given path.
+    pub fn get_partuuid<P: AsRef<Path>>(path: P) -> Option<Self> {
+        Self::get_source(PartitionSource::PartUUID, path)
+    }
+
+    /// Find the device path of this ID.
+    pub fn find_path(&self) -> Option<PathBuf> {
+        from_uuid(&self.id, Self::dir(self.variant))
+    }
+
+    fn dir(variant: PartitionSource) -> fs::ReadDir {
+        let idpath = variant.disk_by_path();
+        idpath.read_dir().expect(&format!("unable to find {:?}", idpath))
     }
 }
 
 /// Describes the type of partition identity.
 #[derive(Copy, Clone, Debug, Hash, PartialEq)]
-pub enum PartitionIDVariant {
+pub enum PartitionSource {
     ID,
     Label,
     PartLabel,
@@ -29,43 +68,22 @@ pub enum PartitionIDVariant {
     UUID
 }
 
-impl From<PartitionIDVariant> for &'static str {
-    fn from(pid: PartitionIDVariant) -> &'static str {
+impl From<PartitionSource> for &'static str {
+    fn from(pid: PartitionSource) -> &'static str {
         match pid {
-            PartitionIDVariant::ID => "id",
-            PartitionIDVariant::Label => "label",
-            PartitionIDVariant::PartLabel => "partlabel",
-            PartitionIDVariant::PartUUID => "partuuid",
-            PartitionIDVariant::Path => "path",
-            PartitionIDVariant::UUID => "uuid"
+            PartitionSource::ID => "id",
+            PartitionSource::Label => "label",
+            PartitionSource::PartLabel => "partlabel",
+            PartitionSource::PartUUID => "partuuid",
+            PartitionSource::Path => "path",
+            PartitionSource::UUID => "uuid"
         }
     }
 }
 
-impl PartitionIDVariant {
-    pub fn disk_by_path(self) -> PathBuf {
+impl PartitionSource {
+    fn disk_by_path(self) -> PathBuf {
         PathBuf::from(["/dev/disk/by-", <&'static str>::from(self)].concat())
-    }
-}
-
-
-impl PartitionID {
-    /// Find the ID of the device at the given path.
-    pub fn by_id<P: AsRef<Path>>(variant: PartitionIDVariant, path: P) -> Option<Self> {
-        Some(Self {
-            variant,
-            id: find_uuid(path.as_ref(), Self::dir(variant))?
-        })
-    }
-
-    /// Find the device path of this ID.
-    pub fn from_id(&self) -> Option<PathBuf> {
-        from_uuid(&self.id, Self::dir(self.variant))
-    }
-
-    fn dir(variant: PartitionIDVariant) -> fs::ReadDir {
-        let idpath = variant.disk_by_path();
-        idpath.read_dir().expect(&format!("unable to find {:?}", idpath))
     }
 }
 
@@ -73,6 +91,7 @@ fn find_uuid(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
     if let Ok(path) = path.canonicalize() {
         for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
             if let Ok(ref uuid_path) = uuid_entry.path().canonicalize() {
+                
                 if uuid_path == &path {
                     if let Some(uuid_entry) = uuid_entry.file_name().to_str() {
                         return Some(uuid_entry.into());
