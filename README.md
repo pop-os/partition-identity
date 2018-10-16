@@ -9,8 +9,8 @@ Find the ID of a device by its path, or find a device path by its ID.
 ```rust
 extern crate partition_identity;
 
-use partition_identity::{PartitionID, PartitionIDVariant};
-use self::PartitionIDVariant::*;
+use partition_identity::{PartitionID, PartitionSource};
+use self::PartitionSource::*;
 use std::env;
 use std::process::exit;
 
@@ -24,24 +24,24 @@ fn main() {
                     if ! first { println!() }
                     first = false;
                     println!("{}:", device);
-                    println!("ID: {:?}", PartitionID::by_id(ID, &device).map(|id| id.id));
-                    println!("Label: {:?}", PartitionID::by_id(Label, &device).map(|id| id.id));
-                    println!("PartLabel: {:?}", PartitionID::by_id(PartLabel, &device).map(|id| id.id));
-                    println!("PartUUID: {:?}", PartitionID::by_id(PartUUID, &device).map(|id| id.id));
-                    println!("Path: {:?}", PartitionID::by_id(Path, &device).map(|id| id.id));
-                    println!("UUID: {:?}", PartitionID::by_id(UUID, &device).map(|id| id.id));
+                    println!("ID: {:?}", PartitionID::get_source(ID, &device).map(|id| id.id));
+                    println!("Label: {:?}", PartitionID::get_source(Label, &device).map(|id| id.id));
+                    println!("PartLabel: {:?}", PartitionID::get_source(PartLabel, &device).map(|id| id.id));
+                    println!("PartUUID: {:?}", PartitionID::get_source(PartUUID, &device).map(|id| id.id));
+                    println!("Path: {:?}", PartitionID::get_source(Path, &device).map(|id| id.id));
+                    println!("UUID: {:?}", PartitionID::get_source(UUID, &device).map(|id| id.id));
                 }
             }
             "by-uuid" => {
                 for id in args {
-                    let var = PartitionID::new(UUID, id.clone());
-                    println!("{}: {:?}", id, var.from_id());
+                    let var = PartitionID::new_uuid(id.clone());
+                    println!("{}: {:?}", id, var.find_path());
                 }
             }
             "by-partuuid" => {
                 for id in args {
-                    let var = PartitionID::new(PartUUID, id.clone());
-                    println!("{}: {:?}", id, var.from_id());
+                    let var = PartitionID::new_partuuid(id.clone());
+                    println!("{}: {:?}", id, var.find_path());
                 }
             }
             _ => {
