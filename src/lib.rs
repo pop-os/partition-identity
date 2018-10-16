@@ -28,6 +28,11 @@ impl PartitionID {
         Self::new(PartitionSource::PartUUID, id)
     }
 
+    /// Find the device path of this ID.
+    pub fn get_device_path(&self) -> Option<PathBuf> {
+        from_uuid(&self.id, Self::dir(self.variant))
+    }
+
     /// Find the given source ID of the device at the given path.
     pub fn get_source<P: AsRef<Path>>(variant: PartitionSource, path: P) -> Option<Self> {
         Some(Self {
@@ -44,11 +49,6 @@ impl PartitionID {
     /// Find the PARTUUID of the device at the given path.
     pub fn get_partuuid<P: AsRef<Path>>(path: P) -> Option<Self> {
         Self::get_source(PartitionSource::PartUUID, path)
-    }
-
-    /// Find the device path of this ID.
-    pub fn find_path(&self) -> Option<PathBuf> {
-        from_uuid(&self.id, Self::dir(self.variant))
     }
 
     fn dir(variant: PartitionSource) -> fs::ReadDir {

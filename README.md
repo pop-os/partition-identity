@@ -35,13 +35,13 @@ fn main() {
             "by-uuid" => {
                 for id in args {
                     let var = PartitionID::new_uuid(id.clone());
-                    println!("{}: {:?}", id, var.find_path());
+                    println!("{}: {:?}", id, var.get_device_path());
                 }
             }
             "by-partuuid" => {
                 for id in args {
                     let var = PartitionID::new_partuuid(id.clone());
-                    println!("{}: {:?}", id, var.find_path());
+                    println!("{}: {:?}", id, var.get_device_path());
                 }
             }
             _ => {
