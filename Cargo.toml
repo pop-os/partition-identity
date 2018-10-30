@@ -3,5 +3,8 @@ name = "partition-identity"
 version = "0.1.0"
 description = "Find the ID of a device by its path, or find a device path by its ID."
 authors = ["Michael Aaron Murphy <mmstickman@gmail.com>"]
+license = "MIT"
+keywords = ["linux", "partition"]
+categories = ["os", "os::unix"]
 
 [dependencies]

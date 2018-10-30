@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Describes a partition identity.
-/// 
+///
 /// A device path may be recovered from this.
 #[derive(Clone, Debug, Hash, PartialEq)]
 pub struct PartitionID {
@@ -53,7 +53,9 @@ impl PartitionID {
 
     fn dir(variant: PartitionSource) -> fs::ReadDir {
         let idpath = variant.disk_by_path();
-        idpath.read_dir().expect(&format!("unable to find {:?}", idpath))
+        idpath.read_dir().unwrap_or_else(|why| {
+            panic!(format!("unable to find {:?}: {}", idpath, why));
+        })
     }
 }
 
@@ -91,7 +93,6 @@ fn find_uuid(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
     if let Ok(path) = path.canonicalize() {
         for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
             if let Ok(ref uuid_path) = uuid_entry.path().canonicalize() {
-                
                 if uuid_path == &path {
                     if let Some(uuid_entry) = uuid_entry.file_name().to_str() {
                         return Some(uuid_entry.into());
