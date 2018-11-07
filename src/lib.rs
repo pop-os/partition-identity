@@ -2,6 +2,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 /// Describes a partition identity.
 ///
@@ -18,14 +19,34 @@ impl PartitionID {
         Self { variant, id }
     }
 
+    /// Construct a new `PartitionID` as a `ID` source.
+    pub fn new_id(id: String) -> Self {
+        Self::new(PartitionSource::ID, id)
+    }
+
+    /// Construct a new `PartitionID` as a `Label` source.
+    pub fn new_label(id: String) -> Self {
+        Self::new(PartitionSource::Label, id)
+    }
+
     /// Construct a new `PartitionID` as a `UUID` source.
     pub fn new_uuid(id: String) -> Self {
         Self::new(PartitionSource::UUID, id)
     }
 
+    /// Construct a new `PartitionID` as a `PartLabel` source.
+    pub fn new_partlabel(id: String) -> Self {
+        Self::new(PartitionSource::PartLabel, id)
+    }
+
     /// Construct a new `PartitionID` as a `PartUUID` source.
     pub fn new_partuuid(id: String) -> Self {
         Self::new(PartitionSource::PartUUID, id)
+    }
+
+    /// Construct a new `PartitionID` as a `Path` source.
+    pub fn new_path(id: String) -> Self {
+        Self::new(PartitionSource::Path, id)
     }
 
     /// Find the device path of this ID.
@@ -56,6 +77,28 @@ impl PartitionID {
         idpath.read_dir().unwrap_or_else(|why| {
             panic!(format!("unable to find {:?}: {}", idpath, why));
         })
+    }
+}
+
+impl FromStr for PartitionID {
+    type Err = String;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        if input.starts_with('/') {
+            Ok(PartitionID { variant: PartitionSource::Path, id: input.to_owned() })
+        } else if input.starts_with("ID=") {
+            Ok(PartitionID { variant: PartitionSource::ID, id: input[3..].to_owned() })
+        } else if input.starts_with("LABEL=") {
+            Ok(PartitionID { variant: PartitionSource::Label, id: input[6..].to_owned() })
+        } else if input.starts_with("PARTLABEL=") {
+            Ok(PartitionID { variant: PartitionSource::PartLabel, id: input[10..].to_owned() })
+        } else if input.starts_with("PARTUUID=") {
+            Ok(PartitionID { variant: PartitionSource::PartUUID, id: input[9..].to_owned() })
+        } else if input.starts_with("UUID=") {
+            Ok(PartitionID { variant: PartitionSource::UUID, id: input[5..].to_owned() })
+        } else {
+            Err(format!("'{}' is not a valid PartitionID string", input))
+        }
     }
 }
 
@@ -118,4 +161,42 @@ fn from_uuid(uuid: &str, uuid_dir: fs::ReadDir) -> Option<PathBuf> {
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn partition_id_from_str() {
+        assert_eq!(
+            "/dev/sda1".parse::<PartitionID>(),
+            Ok(PartitionID::new_path("/dev/sda1".into()))
+        );
+
+        assert_eq!(
+            "ID=abcd".parse::<PartitionID>(),
+            Ok(PartitionID::new_id("abcd".into()))
+        );
+
+        assert_eq!(
+            "LABEL=abcd".parse::<PartitionID>(),
+            Ok(PartitionID::new_label("abcd".into()))
+        );
+
+        assert_eq!(
+            "PARTLABEL=abcd".parse::<PartitionID>(),
+            Ok(PartitionID::new_partlabel("abcd".into()))
+        );
+
+        assert_eq!(
+            "PARTUUID=abcd".parse::<PartitionID>(),
+            Ok(PartitionID::new_partuuid("abcd".into()))
+        );
+
+        assert_eq!(
+            "UUID=abcd".parse::<PartitionID>(),
+            Ok(PartitionID::new_uuid("abcd".into()))
+        );
+    }
 }
