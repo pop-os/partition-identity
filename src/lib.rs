@@ -160,6 +160,18 @@ impl PartitionIdentifiers {
             uuid: PartitionID::get_source(UUID, path).map(|id| id.id),
         }
     }
+
+    /// Checks if the given identity matches one of the available identifiers.
+    pub fn matches(&self, id: &PartitionID) -> bool {
+        match id.variant {
+            ID => self.id.as_ref().map_or(false, |s| &id.id == s),
+            Label => self.label.as_ref().map_or(false, |s| &id.id == s),
+            PartLabel => self.part_label.as_ref().map_or(false, |s| &id.id == s),
+            PartUUID => self.part_uuid.as_ref().map_or(false, |s| &id.id == s),
+            SourcePath => self.path.as_ref().map_or(false, |s| &id.id == s),
+            UUID => self.uuid.as_ref().map_or(false, |s| &id.id == s),
+        }
+    }
 }
 
 fn find_uuid(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
