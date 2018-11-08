@@ -136,7 +136,7 @@ impl PartitionSource {
 }
 
 /// A collection of all discoverable identifiers for a partition.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, Hash, PartialEq)]
 pub struct PartitionIdentifiers {
     id: Option<String>,
     label: Option<String>,
