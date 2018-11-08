@@ -1,8 +1,11 @@
 //! Find the ID of a device by its path, or find a device path by its ID.
 
+use self::PartitionSource::*;
+use self::PartitionSource::Path as SourcePath;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+
 
 /// Describes a partition identity.
 ///
@@ -21,32 +24,32 @@ impl PartitionID {
 
     /// Construct a new `PartitionID` as a `ID` source.
     pub fn new_id(id: String) -> Self {
-        Self::new(PartitionSource::ID, id)
+        Self::new(ID, id)
     }
 
     /// Construct a new `PartitionID` as a `Label` source.
     pub fn new_label(id: String) -> Self {
-        Self::new(PartitionSource::Label, id)
+        Self::new(Label, id)
     }
 
     /// Construct a new `PartitionID` as a `UUID` source.
     pub fn new_uuid(id: String) -> Self {
-        Self::new(PartitionSource::UUID, id)
+        Self::new(UUID, id)
     }
 
     /// Construct a new `PartitionID` as a `PartLabel` source.
     pub fn new_partlabel(id: String) -> Self {
-        Self::new(PartitionSource::PartLabel, id)
+        Self::new(PartLabel, id)
     }
 
     /// Construct a new `PartitionID` as a `PartUUID` source.
     pub fn new_partuuid(id: String) -> Self {
-        Self::new(PartitionSource::PartUUID, id)
+        Self::new(PartUUID, id)
     }
 
     /// Construct a new `PartitionID` as a `Path` source.
     pub fn new_path(id: String) -> Self {
-        Self::new(PartitionSource::Path, id)
+        Self::new(SourcePath, id)
     }
 
     /// Find the device path of this ID.
@@ -64,12 +67,12 @@ impl PartitionID {
 
     /// Find the UUID of the device at the given path.
     pub fn get_uuid<P: AsRef<Path>>(path: P) -> Option<Self> {
-        Self::get_source(PartitionSource::UUID, path)
+        Self::get_source(UUID, path)
     }
 
     /// Find the PARTUUID of the device at the given path.
     pub fn get_partuuid<P: AsRef<Path>>(path: P) -> Option<Self> {
-        Self::get_source(PartitionSource::PartUUID, path)
+        Self::get_source(PartUUID, path)
     }
 
     fn dir(variant: PartitionSource) -> fs::ReadDir {
@@ -85,17 +88,17 @@ impl FromStr for PartitionID {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         if input.starts_with('/') {
-            Ok(PartitionID { variant: PartitionSource::Path, id: input.to_owned() })
+            Ok(PartitionID { variant: SourcePath, id: input.to_owned() })
         } else if input.starts_with("ID=") {
-            Ok(PartitionID { variant: PartitionSource::ID, id: input[3..].to_owned() })
+            Ok(PartitionID { variant: ID, id: input[3..].to_owned() })
         } else if input.starts_with("LABEL=") {
-            Ok(PartitionID { variant: PartitionSource::Label, id: input[6..].to_owned() })
+            Ok(PartitionID { variant: Label, id: input[6..].to_owned() })
         } else if input.starts_with("PARTLABEL=") {
-            Ok(PartitionID { variant: PartitionSource::PartLabel, id: input[10..].to_owned() })
+            Ok(PartitionID { variant: PartLabel, id: input[10..].to_owned() })
         } else if input.starts_with("PARTUUID=") {
-            Ok(PartitionID { variant: PartitionSource::PartUUID, id: input[9..].to_owned() })
+            Ok(PartitionID { variant: PartUUID, id: input[9..].to_owned() })
         } else if input.starts_with("UUID=") {
-            Ok(PartitionID { variant: PartitionSource::UUID, id: input[5..].to_owned() })
+            Ok(PartitionID { variant: UUID, id: input[5..].to_owned() })
         } else {
             Err(format!("'{}' is not a valid PartitionID string", input))
         }
@@ -129,6 +132,33 @@ impl From<PartitionSource> for &'static str {
 impl PartitionSource {
     fn disk_by_path(self) -> PathBuf {
         PathBuf::from(["/dev/disk/by-", <&'static str>::from(self)].concat())
+    }
+}
+
+/// A collection of all discoverable identifiers for a partition.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PartitionIdentifiers {
+    id: Option<String>,
+    label: Option<String>,
+    part_label: Option<String>,
+    part_uuid: Option<String>,
+    path: Option<String>,
+    uuid: Option<String>
+}
+
+impl PartitionIdentifiers {
+    /// Fetches all discoverable identifiers for a partition by the path to that partition.
+    pub fn from_path<P: AsRef<Path>>(path: P) -> PartitionIdentifiers {
+        let path = path.as_ref();
+
+        PartitionIdentifiers {
+            path: PartitionID::get_source(SourcePath, path).map(|id| id.id),
+            id: PartitionID::get_source(ID, path).map(|id| id.id),
+            label: PartitionID::get_source(Label, path).map(|id| id.id),
+            part_label: PartitionID::get_source(PartLabel, path).map(|id| id.id),
+            part_uuid: PartitionID::get_source(PartUUID, path).map(|id| id.id),
+            uuid: PartitionID::get_source(UUID, path).map(|id| id.id),
+        }
     }
 }
 
