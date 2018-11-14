@@ -1,6 +1,6 @@
 extern crate partition_identity;
 
-use partition_identity::{PartitionIdentifiers, PartitionID, PartitionSource};
+use partition_identity::{PartitionIdentifiers, PartitionID};
 use std::env;
 use std::process::exit;
 

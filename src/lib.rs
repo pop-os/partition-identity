@@ -54,14 +54,14 @@ impl PartitionID {
 
     /// Find the device path of this ID.
     pub fn get_device_path(&self) -> Option<PathBuf> {
-        from_uuid(&self.id, Self::dir(self.variant))
+        from_uuid(&self.id, Self::dir(self.variant)?)
     }
 
     /// Find the given source ID of the device at the given path.
     pub fn get_source<P: AsRef<Path>>(variant: PartitionSource, path: P) -> Option<Self> {
         Some(Self {
             variant,
-            id: find_uuid(path.as_ref(), Self::dir(variant))?
+            id: find_uuid(path.as_ref(), Self::dir(variant)?)?
         })
     }
 
@@ -75,11 +75,9 @@ impl PartitionID {
         Self::get_source(PartUUID, path)
     }
 
-    fn dir(variant: PartitionSource) -> fs::ReadDir {
+    fn dir(variant: PartitionSource) -> Option<fs::ReadDir> {
         let idpath = variant.disk_by_path();
-        idpath.read_dir().unwrap_or_else(|why| {
-            panic!(format!("unable to find {:?}: {}", idpath, why));
-        })
+        idpath.read_dir().ok()
     }
 }
 
