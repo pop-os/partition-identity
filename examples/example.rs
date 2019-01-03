@@ -35,6 +35,19 @@ fn main() {
                     println!("{}: {:?}", id, var.get_device_path());
                 }
             }
+            "detect-by" => {
+                for id in args {
+                    let id = match PartitionID::from_disk_by_path(&id) {
+                        Ok(id) => id,
+                        Err(why) => {
+                            eprintln!("{}: {}", id, why);
+                            exit(1);
+                        }
+                    };
+
+                    println!("{:?} = {:?}", id, id.get_device_path());
+                }
+            }
             _ => {
                 eprintln!("invalid subcommand: valid commansd: [from-path, by-uuid, by-partuuid, ]");
                 exit(1);

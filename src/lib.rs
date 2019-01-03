@@ -1,11 +1,24 @@
 //! Find the ID of a device by its path, or find a device path by its ID.
 
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
+
 use self::PartitionSource::*;
 use self::PartitionSource::Path as SourcePath;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "the partition ID key was invalid")]
+    InvalidKey,
+    #[fail(display = "the provided path was not valid in this context")]
+    InvalidPath,
+    #[fail(display = "the provided `/dev/disk/by-` path was not supported")]
+    UnknownByPath
+}
 
 /// Describes a partition identity.
 ///
@@ -75,6 +88,35 @@ impl PartitionID {
         Self::get_source(PartUUID, path)
     }
 
+    /// Fetch a partition ID by a `/dev/disk/by-` path.
+    pub fn from_disk_by_path<S: AsRef<str>>(path: S) -> Result<Self, Error> {
+        let path = path.as_ref();
+
+        let path = if path.starts_with("/dev/disk/by-") {
+            &path[13..]
+        } else {
+            return Err(Error::InvalidPath);
+        };
+
+        let id = if path.starts_with("id/") {
+            Self::new(ID, path[3..].into())
+        } else if path.starts_with("label/") {
+            Self::new(Label, path[6..].into())
+        } else if path.starts_with("partlabel/") {
+            Self::new(PartLabel, path[10..].into())
+        } else if path.starts_with("partuuid/") {
+            Self::new(PartUUID, path[9..].into())
+        } else if path.starts_with("path/") {
+            Self::new(Path, path[5..].into())
+        } else if path.starts_with("uuid/") {
+            Self::new(UUID, path[5..].into())
+        } else {
+            return Err(Error::UnknownByPath);
+        };
+
+        Ok(id)
+    }
+
     fn dir(variant: PartitionSource) -> Option<fs::ReadDir> {
         let idpath = variant.disk_by_path();
         idpath.read_dir().ok()
@@ -82,7 +124,7 @@ impl PartitionID {
 }
 
 impl FromStr for PartitionID {
-    type Err = String;
+    type Err = Error;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         if input.starts_with('/') {
@@ -98,7 +140,7 @@ impl FromStr for PartitionID {
         } else if input.starts_with("UUID=") {
             Ok(PartitionID { variant: UUID, id: input[5..].to_owned() })
         } else {
-            Err(format!("'{}' is not a valid PartitionID string", input))
+            Err(Error::InvalidKey)
         }
     }
 }
