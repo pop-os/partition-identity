@@ -1,8 +1,7 @@
 //! Find the ID of a device by its path, or find a device path by its ID.
 
-extern crate failure;
 #[macro_use]
-extern crate failure_derive;
+extern crate err_derive;
 
 use self::PartitionSource::*;
 use self::PartitionSource::Path as SourcePath;
@@ -10,13 +9,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error, PartialEq)]
 pub enum Error {
-    #[fail(display = "the partition ID key was invalid")]
+    #[error(display = "the partition ID key was invalid")]
     InvalidKey,
-    #[fail(display = "the provided path was not valid in this context")]
+    #[error(display = "the provided path was not valid in this context")]
     InvalidPath,
-    #[fail(display = "the provided `/dev/disk/by-` path was not supported")]
+    #[error(display = "the provided `/dev/disk/by-` path was not supported")]
     UnknownByPath
 }
 
@@ -178,12 +177,12 @@ impl PartitionSource {
 /// A collection of all discoverable identifiers for a partition.
 #[derive(Debug, Default, Clone, Hash, PartialEq)]
 pub struct PartitionIdentifiers {
-    id: Option<String>,
-    label: Option<String>,
-    part_label: Option<String>,
-    part_uuid: Option<String>,
-    path: Option<String>,
-    uuid: Option<String>
+    pub id: Option<String>,
+    pub label: Option<String>,
+    pub part_label: Option<String>,
+    pub part_uuid: Option<String>,
+    pub path: Option<String>,
+    pub uuid: Option<String>
 }
 
 impl PartitionIdentifiers {
