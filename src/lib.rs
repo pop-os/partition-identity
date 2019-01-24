@@ -66,14 +66,14 @@ impl PartitionID {
 
     /// Find the device path of this ID.
     pub fn get_device_path(&self) -> Option<PathBuf> {
-        from_uuid(&self.id, Self::dir(self.variant)?)
+        from_id(&self.id, &self.variant.disk_by_path())
     }
 
     /// Find the given source ID of the device at the given path.
     pub fn get_source<P: AsRef<Path>>(variant: PartitionSource, path: P) -> Option<Self> {
         Some(Self {
             variant,
-            id: find_uuid(path.as_ref(), Self::dir(variant)?)?
+            id: find_id(path.as_ref(), &variant.disk_by_path())?
         })
     }
 
@@ -114,11 +114,6 @@ impl PartitionID {
         };
 
         Ok(id)
-    }
-
-    fn dir(variant: PartitionSource) -> Option<fs::ReadDir> {
-        let idpath = variant.disk_by_path();
-        idpath.read_dir().ok()
     }
 }
 
@@ -213,15 +208,50 @@ impl PartitionIdentifiers {
     }
 }
 
-fn find_uuid(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
-    if let Ok(path) = path.canonicalize() {
-        for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
-            if let Ok(ref uuid_path) = uuid_entry.path().canonicalize() {
-                if uuid_path == &path {
-                    if let Some(uuid_entry) = uuid_entry.file_name().to_str() {
-                        return Some(uuid_entry.into());
-                    }
-                }
+fn attempt<T, F: FnMut() -> Option<T>>(attempts: u8, wait: u64, mut func: F) -> Option<T> {
+    let mut tried = 0;
+    let mut result;
+
+    loop {
+        result = func();
+        if result.is_none() && tried != attempts {
+            ::std::thread::sleep(::std::time::Duration::from_millis(wait));
+            tried += 1;
+        } else {
+            return result;
+        }
+    }
+}
+
+fn canonicalize(path: &Path) -> PathBuf {
+    // NOTE: It seems that the kernel may intermittently error.
+    attempt(10, 1, || path.canonicalize().ok()).unwrap_or_else(|| path.to_owned())
+}
+
+/// Attempts to find the ID from the given path.
+fn find_id(path: &Path, uuid_dir: &Path) -> Option<String> {
+    // NOTE: It seems that the kernel may sometimes intermittently skip directories.
+    attempt(10, 1, move || {
+        let dir = uuid_dir.read_dir().ok()?;
+        find_id_(path, dir)
+    })
+}
+
+fn from_id(uuid: &str, uuid_dir: &Path) -> Option<PathBuf> {
+    // NOTE: It seems that the kernel may sometimes intermittently skip directories.
+    attempt(10, 1, move || {
+        let dir = uuid_dir.read_dir().ok()?;
+        from_id_(uuid, dir)
+    })
+}
+
+fn find_id_(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
+    let path = canonicalize(path);
+    for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
+        let uuid_path = canonicalize(&uuid_entry.path());
+        if &uuid_path == &path {
+            if let Some(uuid_entry) = uuid_entry.file_name().to_str() {
+                return Some(uuid_entry.into());
             }
         }
     }
@@ -229,7 +259,7 @@ fn find_uuid(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
     None
 }
 
-fn from_uuid(uuid: &str, uuid_dir: fs::ReadDir) -> Option<PathBuf> {
+fn from_id_(uuid: &str, uuid_dir: fs::ReadDir) -> Option<PathBuf> {
     for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
         let uuid_entry = uuid_entry.path();
         if let Some(name) = uuid_entry.file_name() {
