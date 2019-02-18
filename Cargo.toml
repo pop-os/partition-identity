@@ -1,6 +1,6 @@
 [package]
 name = "partition-identity"
-version = "0.2.2"
+version = "0.2.3"
 repository = "https://github.com/pop-os/partition-identity"
 description = "Find the ID of a device by its path, or find a device path by its ID."
 authors = ["Michael Aaron Murphy <mmstickman@gmail.com>"]
@@ -10,6 +10,4 @@ categories = ["os", "os::unix-apis"]
 readme = "README.md"
 
 [dependencies]
-failure = "0.1"
-failure_derive = "0.1"
 err-derive = "0.1.5"

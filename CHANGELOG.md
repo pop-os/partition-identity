@@ -1,3 +1,7 @@
+# 0.2.3
+
+- Derive `Eq` for `PartitionSource` and `PartitionID`
+
 # 0.2.2
 
 - Applies a workaround to handle intermittent unavailability of `/dev/disk/by-` path operations.

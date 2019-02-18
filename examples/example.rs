@@ -1,6 +1,6 @@
 extern crate partition_identity;
 
-use partition_identity::{PartitionIdentifiers, PartitionID};
+use partition_identity::{PartitionID, PartitionIdentifiers};
 use std::env;
 use std::process::exit;
 
@@ -11,7 +11,9 @@ fn main() {
             "from-path" => {
                 let mut first = true;
                 for device in args {
-                    if ! first { println!() }
+                    if !first {
+                        println!()
+                    }
                     first = false;
                     println!("{}:", device);
                     println!("{:#?}", PartitionIdentifiers::from_path(device));
@@ -49,10 +51,12 @@ fn main() {
                 }
             }
             _ => {
-                eprintln!("invalid subcommand: valid commansd: [from-path, by-uuid, by-partuuid, ]");
+                eprintln!(
+                    "invalid subcommand: valid commansd: [from-path, by-uuid, by-partuuid, ]"
+                );
                 exit(1);
             }
-        }
+        },
         None => {
             eprintln!("must give subcommand: [from-path, by-uuid, by-partuuid, ]");
             exit(1);

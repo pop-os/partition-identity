@@ -3,29 +3,34 @@
 #[macro_use]
 extern crate err_derive;
 
-use self::PartitionSource::*;
 use self::PartitionSource::Path as SourcePath;
+use self::PartitionSource::*;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, Hash, Eq, PartialEq)]
 pub enum Error {
     #[error(display = "the partition ID key was invalid")]
     InvalidKey,
     #[error(display = "the provided path was not valid in this context")]
     InvalidPath,
     #[error(display = "the provided `/dev/disk/by-` path was not supported")]
-    UnknownByPath
+    UnknownByPath,
 }
 
 /// Describes a partition identity.
 ///
 /// A device path may be recovered from this.
-#[derive(Clone, Debug, Hash, PartialEq)]
+///
+/// # Notes
+///
+/// This is a struct instead of an enum to make access to the `id` string
+/// easier for situations where the variant does not need to be checked.
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct PartitionID {
     pub variant: PartitionSource,
-    pub id: String
+    pub id: String,
 }
 
 impl PartitionID {
@@ -71,10 +76,7 @@ impl PartitionID {
 
     /// Find the given source ID of the device at the given path.
     pub fn get_source<P: AsRef<Path>>(variant: PartitionSource, path: P) -> Option<Self> {
-        Some(Self {
-            variant,
-            id: find_id(path.as_ref(), &variant.disk_by_path())?
-        })
+        Some(Self { variant, id: find_id(path.as_ref(), &variant.disk_by_path())? })
     }
 
     /// Find the UUID of the device at the given path.
@@ -140,14 +142,14 @@ impl FromStr for PartitionID {
 }
 
 /// Describes the type of partition identity.
-#[derive(Copy, Clone, Debug, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum PartitionSource {
     ID,
     Label,
     PartLabel,
     PartUUID,
     Path,
-    UUID
+    UUID,
 }
 
 impl From<PartitionSource> for &'static str {
@@ -158,7 +160,7 @@ impl From<PartitionSource> for &'static str {
             PartitionSource::PartLabel => "partlabel",
             PartitionSource::PartUUID => "partuuid",
             PartitionSource::Path => "path",
-            PartitionSource::UUID => "uuid"
+            PartitionSource::UUID => "uuid",
         }
     }
 }
@@ -177,7 +179,7 @@ pub struct PartitionIdentifiers {
     pub part_label: Option<String>,
     pub part_uuid: Option<String>,
     pub path: Option<String>,
-    pub uuid: Option<String>
+    pub uuid: Option<String>,
 }
 
 impl PartitionIdentifiers {
@@ -285,15 +287,9 @@ mod tests {
             Ok(PartitionID::new_path("/dev/sda1".into()))
         );
 
-        assert_eq!(
-            "ID=abcd".parse::<PartitionID>(),
-            Ok(PartitionID::new_id("abcd".into()))
-        );
+        assert_eq!("ID=abcd".parse::<PartitionID>(), Ok(PartitionID::new_id("abcd".into())));
 
-        assert_eq!(
-            "LABEL=abcd".parse::<PartitionID>(),
-            Ok(PartitionID::new_label("abcd".into()))
-        );
+        assert_eq!("LABEL=abcd".parse::<PartitionID>(), Ok(PartitionID::new_label("abcd".into())));
 
         assert_eq!(
             "PARTLABEL=abcd".parse::<PartitionID>(),
@@ -305,9 +301,6 @@ mod tests {
             Ok(PartitionID::new_partuuid("abcd".into()))
         );
 
-        assert_eq!(
-            "UUID=abcd".parse::<PartitionID>(),
-            Ok(PartitionID::new_uuid("abcd".into()))
-        );
+        assert_eq!("UUID=abcd".parse::<PartitionID>(), Ok(PartitionID::new_uuid("abcd".into())));
     }
 }
