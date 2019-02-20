@@ -1,3 +1,7 @@
+# 0.2.6
+
+- Remove the eprintln statements
+
 # 0.2.5
 
 - Fix `PartitionID::get_device_path()` to handle `PartitionSource::Path`s that are already canonicalized.

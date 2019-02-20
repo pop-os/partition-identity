@@ -259,7 +259,6 @@ fn canonicalize<'a>(path: &'a Path) -> Cow<'a, Path> {
 fn find_id(path: &Path, uuid_dir: &Path) -> Option<String> {
     // NOTE: It seems that the kernel may sometimes intermittently skip directories.
     attempt(10, 1, move || {
-        eprintln!("reading {:?}", uuid_dir);
         let dir = uuid_dir.read_dir().ok()?;
         find_id_(path, dir)
     })
@@ -274,12 +273,10 @@ fn from_id(uuid: &str, uuid_dir: &Path) -> Option<PathBuf> {
 }
 
 fn find_id_(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
-    eprintln!("finding {:?}", path);
     let path = canonicalize(path);
     for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
         let uuid_path = uuid_entry.path();
         let uuid_path = canonicalize(&uuid_path);
-        eprintln!("{:?} == {:?}", uuid_path, path);
         if &uuid_path == &path {
             if let Some(uuid_entry) = uuid_entry.file_name().to_str() {
                 return Some(uuid_entry.into());
