@@ -1,3 +1,9 @@
+# 0.2.5
+
+- Fix `PartitionID::get_device_path()` to handle `PartitionSource::Path`s that are already canonicalized.
+- Fix change in last version which broke the `PartitionID::get_source()` method.
+- Eliminate unnecessary allocations when canonicalizing paths
+
 # 0.2.4
 
 - Implement `Display` for `PartitionID` and `PartitionSource`.

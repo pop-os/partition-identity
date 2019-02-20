@@ -5,6 +5,7 @@ extern crate err_derive;
 
 use self::PartitionSource::Path as SourcePath;
 use self::PartitionSource::*;
+use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -72,7 +73,11 @@ impl PartitionID {
 
     /// Find the device path of this ID.
     pub fn get_device_path(&self) -> Option<PathBuf> {
-        from_id(&self.id, &self.variant.disk_by_path())
+        if self.variant == PartitionSource::Path && self.id.starts_with("/") {
+            Some(PathBuf::from(&self.id))
+        } else {
+            from_id(&self.id, &self.variant.disk_by_path())
+        }
     }
 
     /// Find the given source ID of the device at the given path.
@@ -184,7 +189,7 @@ impl From<PartitionSource> for &'static str {
 
 impl PartitionSource {
     fn disk_by_path(self) -> PathBuf {
-        PathBuf::from(["/dev/disk/by-", <&'static str>::from(self)].concat())
+        PathBuf::from(["/dev/disk/by-", &<&'static str>::from(self).to_lowercase()].concat())
     }
 }
 
@@ -242,15 +247,19 @@ fn attempt<T, F: FnMut() -> Option<T>>(attempts: u8, wait: u64, mut func: F) -> 
     }
 }
 
-fn canonicalize(path: &Path) -> PathBuf {
+fn canonicalize<'a>(path: &'a Path) -> Cow<'a, Path> {
     // NOTE: It seems that the kernel may intermittently error.
-    attempt(10, 1, || path.canonicalize().ok()).unwrap_or_else(|| path.to_owned())
+    match attempt::<PathBuf, _>(10, 1, || path.canonicalize().ok()) {
+        Some(path) => Cow::Owned(path),
+        None => Cow::Borrowed(path),
+    }
 }
 
 /// Attempts to find the ID from the given path.
 fn find_id(path: &Path, uuid_dir: &Path) -> Option<String> {
     // NOTE: It seems that the kernel may sometimes intermittently skip directories.
     attempt(10, 1, move || {
+        eprintln!("reading {:?}", uuid_dir);
         let dir = uuid_dir.read_dir().ok()?;
         find_id_(path, dir)
     })
@@ -265,9 +274,12 @@ fn from_id(uuid: &str, uuid_dir: &Path) -> Option<PathBuf> {
 }
 
 fn find_id_(path: &Path, uuid_dir: fs::ReadDir) -> Option<String> {
+    eprintln!("finding {:?}", path);
     let path = canonicalize(path);
     for uuid_entry in uuid_dir.filter_map(|entry| entry.ok()) {
-        let uuid_path = canonicalize(&uuid_entry.path());
+        let uuid_path = uuid_entry.path();
+        let uuid_path = canonicalize(&uuid_path);
+        eprintln!("{:?} == {:?}", uuid_path, path);
         if &uuid_path == &path {
             if let Some(uuid_entry) = uuid_entry.file_name().to_str() {
                 return Some(uuid_entry.into());
