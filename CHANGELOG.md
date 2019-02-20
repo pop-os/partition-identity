@@ -1,3 +1,7 @@
+# 0.2.4
+
+- Implement `Display` for `PartitionID` and `PartitionSource`.
+
 # 0.2.3
 
 - Derive `Eq` for `PartitionSource` and `PartitionID`

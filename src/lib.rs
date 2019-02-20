@@ -5,6 +5,7 @@ extern crate err_derive;
 
 use self::PartitionSource::Path as SourcePath;
 use self::PartitionSource::*;
+use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -119,6 +120,16 @@ impl PartitionID {
     }
 }
 
+impl Display for PartitionID {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        if let PartitionSource::Path = self.variant {
+            write!(fmt, "{}", self.id)
+        } else {
+            write!(fmt, "{}={}", <&'static str>::from(self.variant), self.id)
+        }
+    }
+}
+
 impl FromStr for PartitionID {
     type Err = Error;
 
@@ -152,15 +163,21 @@ pub enum PartitionSource {
     UUID,
 }
 
+impl Display for PartitionSource {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        write!(fmt, "{}", <&'static str>::from(*self))
+    }
+}
+
 impl From<PartitionSource> for &'static str {
     fn from(pid: PartitionSource) -> &'static str {
         match pid {
-            PartitionSource::ID => "id",
-            PartitionSource::Label => "label",
-            PartitionSource::PartLabel => "partlabel",
-            PartitionSource::PartUUID => "partuuid",
-            PartitionSource::Path => "path",
-            PartitionSource::UUID => "uuid",
+            PartitionSource::ID => "ID",
+            PartitionSource::Label => "LABEL",
+            PartitionSource::PartLabel => "PARTLABEL",
+            PartitionSource::PartUUID => "PARTUUID",
+            PartitionSource::Path => "PATH",
+            PartitionSource::UUID => "UUID",
         }
     }
 }

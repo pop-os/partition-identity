@@ -1,6 +1,6 @@
 [package]
 name = "partition-identity"
-version = "0.2.3"
+version = "0.2.4"
 repository = "https://github.com/pop-os/partition-identity"
 description = "Find the ID of a device by its path, or find a device path by its ID."
 authors = ["Michael Aaron Murphy <mmstickman@gmail.com>"]
