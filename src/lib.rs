@@ -1,8 +1,6 @@
 //! Find the ID of a device by its path, or find a device path by its ID.
 
-#[macro_use]
-extern crate err_derive;
-
+use thiserror::Error;
 use self::PartitionSource::Path as SourcePath;
 use self::PartitionSource::*;
 use std::borrow::Cow;
@@ -13,11 +11,11 @@ use std::str::FromStr;
 
 #[derive(Debug, Error, Hash, Eq, PartialEq)]
 pub enum Error {
-    #[error(display = "the partition ID key was invalid")]
+    #[error("the partition ID key was invalid")]
     InvalidKey,
-    #[error(display = "the provided path was not valid in this context")]
+    #[error("the provided path was not valid in this context")]
     InvalidPath,
-    #[error(display = "the provided `/dev/disk/by-` path was not supported")]
+    #[error("the provided `/dev/disk/by-` path was not supported")]
     UnknownByPath,
 }
 
